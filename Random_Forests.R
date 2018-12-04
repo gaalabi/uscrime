@@ -1,19 +1,27 @@
 library(MASS)
 library(tree)
-attach(UScrime)
 library(randomForest)
 
-set.seed(1)
-train=sample(1:nrow(UScrime),nrow(UScrime)/2)
-tree.ineq=tree(Ineq~.,data=UScrime, subset=train)
-summary(tree.ineq)
-par(mfrow = c(1,1))
-plot(tree.ineq)
-text(tree.ineq,pretty=0)
-ineq.test=UScrime[-train,"Ineq"]
+B=1000 
+n=nrow(UScrime) # total number of data points
+p=ncol(UScrime)-1 # number of predictors
 
-rf.ineq=randomForest(Ineq~.,data=UScrime,subset=train,mtry=4,importance=TRUE)
-yhat.rf=predict(rf.ineq,newdata=UScrime[-train,])
-mean((yhat.rf-ineq.test)^2)
+#train/test subset
+set.seed(1)
+train=sample(1:nrow(UScrime), nrow(UScrime)/2)
+UScrime.test=subset(UScrime[-train,],select=-Ineq) 
+ineq.test=UScrime$Ineq[-train]
+
+# creating random forests
+rf.ineq=randomForest(Ineq~.,data=UScrime,subset=train,
+                     xtest=UScrime.test,ytest=ineq.test,
+                     ntree=B,mtry=sqrt(p),importance=T)
+#Test MSE is here
+rf.ineq
+
+#Predicted values from random forest
+rf.ineq$predicted
+
+# Which predictors are most important?
 importance(rf.ineq)
 varImpPlot(rf.ineq)
